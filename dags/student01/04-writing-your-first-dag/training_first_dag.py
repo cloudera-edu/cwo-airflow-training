@@ -15,11 +15,11 @@ from airflow.providers.standard.operators.python import PythonOperator
 # Use lowercase letters, digits or underscores for the folder name.
 STUDENT = re.sub(r"[^a-z0-9_]", "_", Path(__file__).resolve().parents[1].name.lower())
 
-default_args === {
+default_args = {
     "owner": STUDENT,
     "retries": 1,
     "retry_delay": timedelta(minutes=2),
-}
+
 
 with DAG(
     dag_id=f"training_first_dag_{STUDENT}",
