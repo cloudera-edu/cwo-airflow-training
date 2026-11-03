@@ -24,7 +24,7 @@ default_args = {
 with DAG(
     dag_id=f"training_first_dag_{STUDENT}",
     default_args=default_args,
-    description="My first Workflow Orchestrator DAG",
+    description="My first Workflow Orchestrator DAG.",
     schedule=None,
     start_date=datetime(2024, 1, 1),
     catchup=False,
