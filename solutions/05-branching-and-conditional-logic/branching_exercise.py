@@ -1,4 +1,4 @@
-"""Module 05 - Branching logic, solution (Workflow Orchestrator, Airflow 3.2.1)."""
+"""Module 05 - Branching logic (Workflow Orchestrator, Airflow 3.2.1  v2)."""
 import re
 from pathlib import Path
 import random
@@ -13,10 +13,6 @@ from airflow.providers.standard.operators.python import BranchPythonOperator, Py
 STUDENT = re.sub(r"[^a-z0-9_]", "_", Path(__file__).resolve().parents[1].name.lower())
 
 
-def extract_data_fn(**kwargs):
-    print("extracting data...")
-
-
 def check_data_quality(**kwargs):
     # Simulate: 70% chance of passing
     quality_score = random.uniform(0, 100)
@@ -24,6 +20,10 @@ def check_data_quality(**kwargs):
     if quality_score >= 30:
         return "load_data"
     return "send_alert"
+
+
+def extract_data_fn(**kwargs):
+    print("extracting data...")
 
 
 def load_data_fn(**kwargs):
@@ -39,14 +39,23 @@ with DAG(
     schedule=None,
     start_date=datetime(2024, 1, 1),
     catchup=False,
-    tags=["training", "branching"],
+    tags=["training", "branching", "v2"],
 ) as dag:
 
-    extract_data = PythonOperator(task_id="extract_data", python_callable=extract_data_fn)
+    extract_data = PythonOperator(
+        task_id="extract_data",
+        python_callable=extract_data_fn,
+    )
 
-    quality_check = BranchPythonOperator(task_id="quality_check", python_callable=check_data_quality)
+    quality_check = BranchPythonOperator(
+        task_id="quality_check",
+        python_callable=check_data_quality,
+    )
 
-    load_data = PythonOperator(task_id="load_data", python_callable=load_data_fn)
+    load_data = PythonOperator(
+        task_id="load_data",
+        python_callable=load_data_fn,
+    )
 
     send_alert = BashOperator(
         task_id="send_alert",
