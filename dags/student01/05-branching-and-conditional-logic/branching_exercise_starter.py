@@ -39,7 +39,7 @@ with DAG(
     schedule=None,
     start_date=datetime(2024, 1, 1),
     catchup=False,
-    tags=["training", "branching"],
+    tags=["training", "branching", "v2"],
 ) as dag:
 
     extract_data = PythonOperator(
