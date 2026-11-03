@@ -20,7 +20,7 @@ default_args = {
     "retries": 1,
     "retry_delay": timedelta(minutes=2),
 
-
+}
 with DAG(
     dag_id=f"training_first_dag_{STUDENT}",
     default_args=default_args,
