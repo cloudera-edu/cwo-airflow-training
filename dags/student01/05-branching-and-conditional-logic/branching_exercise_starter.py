@@ -1,12 +1,12 @@
-"""Module 05 - Branching logic, starter template (Workflow Orchestrator, Airflow 3.2.1)."""
+"""Module 05 - Branching logic (Workflow Orchestrator, Airflow 3.2.1)."""
 import re
 from pathlib import Path
 import random
 from datetime import datetime
 
 from airflow.sdk import DAG
-from airflow.providers.standard.operators.bash import BashOperator  # noqa: F401  (you will need these)
-from airflow.providers.standard.operators.python import BranchPythonOperator, PythonOperator  # noqa: F401
+from airflow.providers.standard.operators.bash import BashOperator
+from airflow.providers.standard.operators.python import BranchPythonOperator, PythonOperator
 
 # Your student name is taken from your folder: dags/<your_name>/<module>/<this file>.
 # Use lowercase letters, digits or underscores for the folder name.
@@ -22,6 +22,18 @@ def check_data_quality(**kwargs):
     return "send_alert"
 
 
+def extract_data_fn(**kwargs):
+    print("extracting data...")
+
+
+def load_data_fn(**kwargs):
+    print("loading data...")
+
+
+def cleanup_fn(**kwargs):
+    print("running cleanup...")
+
+
 with DAG(
     dag_id=f"branching_exercise_{STUDENT}",
     schedule=None,
@@ -30,15 +42,31 @@ with DAG(
     tags=["training", "branching"],
 ) as dag:
 
-    # TODO: Define tasks:
-    # 1. extract_data (PythonOperator)
-    # 2. quality_check (BranchPythonOperator)
-    # 3. load_data (PythonOperator)
-    # 4. send_alert (BashOperator)
-    # 5. cleanup (PythonOperator with trigger_rule='none_failed_min_one_success')
+    extract_data = PythonOperator(
+        task_id="extract_data",
+        python_callable=extract_data_fn,
+    )
 
-    # TODO: Set dependencies:
-    # extract_data >> quality_check >> [load_data, send_alert]
-    # [load_data, send_alert] >> cleanup
+    quality_check = BranchPythonOperator(
+        task_id="quality_check",
+        python_callable=check_data_quality,
+    )
 
-    pass  # remove once you have defined the tasks above
+    load_data = PythonOperator(
+        task_id="load_data",
+        python_callable=load_data_fn,
+    )
+
+    send_alert = BashOperator(
+        task_id="send_alert",
+        bash_command='echo "ALERT: data quality check failed"',
+    )
+
+    cleanup = PythonOperator(
+        task_id="cleanup",
+        python_callable=cleanup_fn,
+        trigger_rule="none_failed_min_one_success",
+    )
+
+    extract_data >> quality_check >> [load_data, send_alert]
+    [load_data, send_alert] >> cleanup
