@@ -32,16 +32,16 @@ def alert_on_failure(context):
 
 default_args = {
     "retries": 3,
-    "retry_delay": timedelta(minutes=5),
-    "retry_exponential_backoff": True,
-    "max_retry_delay": timedelta(minutes=30),
+    "retry_delay": timedelta(seconds=10),          # first retry after ~10s
+    "retry_exponential_backoff": True,             # then ~20s, ~40s
+    "max_retry_delay": timedelta(minutes=1),       # never wait more than 1 min
     "on_failure_callback": alert_on_failure,
 }
 
 with DAG(
     dag_id=f"retry_and_alerting_example_{STUDENT}",
     default_args=default_args,
-    schedule="@daily",
+    schedule=None,                                 # runs only when triggered
     start_date=datetime(2024, 1, 1),
     catchup=False,
     tags=["training", "retries"],
@@ -50,7 +50,7 @@ with DAG(
     def flaky_task():
         import random
 
-        if random.random() < 0.5:
+        if random.random() < 0.7:                  # 70% chance of failure
             raise Exception("Simulated transient failure")
         print("Task succeeded")
 
