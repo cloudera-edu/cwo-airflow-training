@@ -1,8 +1,4 @@
-"""Module 12 / Ex 13 - Debugging a broken DAG, part 1 (Workflow Orchestrator, Airflow 3.2.1).
-
-Deploy, trigger, and use the task logs to find the bugs. Task logs are
-written to remote storage, so they stay available after the worker pod is gone.
-"""
+"""Module 12 / Ex 13 - Debugging a broken DAG, part 1 solution (Workflow Orchestrator, Airflow 3.2.1)."""
 import re
 from pathlib import Path
 from datetime import datetime
@@ -23,30 +19,30 @@ with DAG(
 ) as dag:
 
     def step_one():
-        data = {"status": "ready", "count": 100}
-        return data
+        return {"status": "ready", "count": 100}
 
     def step_two(**kwargs):
         ti = kwargs["ti"]
-        # BUG 1: Wrong task_id in xcom_pull
-        data = ti.xcom_pull(task_ids="step_1")
+        # FIXED: use the actual task_id ('task_one'), not the function name
+        data = ti.xcom_pull(task_ids="task_one")
         print(f'Count: {data["count"]}')
+        # push the count explicitly so step_three can use the real number
+        ti.xcom_push(key="count", value=data["count"])
         return data["count"] > 50
 
     def step_three(**kwargs):
         ti = kwargs["ti"]
-        result = ti.xcom_pull(task_ids="task_two")
-        if result:
-            # BUG 2: Division by zero
-            ratio = result / (result - True)
-            print(f"Ratio: {ratio}")
+        passed = ti.xcom_pull(task_ids="task_two")               # boolean
+        count = ti.xcom_pull(task_ids="task_two", key="count")   # actual number
+        # FIXED: no arithmetic on the boolean, and guard the zero denominator
+        if passed and count and count != 1:
+            print(f"Ratio: {count / (count - 1)}")
+        else:
+            print("Skipping ratio calculation - no valid count or count == 1")
 
     t1 = PythonOperator(task_id="task_one", python_callable=step_one)
     t2 = PythonOperator(task_id="task_two", python_callable=step_two)
     t3 = PythonOperator(task_id="task_three", python_callable=step_three)
 
-    # BUG 3: Circular dependency
+    # FIXED: linear dependency, no cycle
     t1 >> t2 >> t3
-    # Uncomment below to introduce the circular dependency (the DAG processor
-    # will report it as a DAG import error instead of running the DAG):
-    # t3 >> t1
