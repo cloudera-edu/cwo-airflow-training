@@ -9,13 +9,20 @@ The run is given 2 minutes; the task takes 4. After 2 minutes the callback
 fires, and the task still finishes: a deadline alerts, it doesn't stop the run.
 """
 import re
+import sys
 from pathlib import Path
 from datetime import timedelta
 
 from airflow.sdk import DAG, DeadlineAlert, DeadlineReference, SyncCallback
 from airflow.providers.standard.operators.bash import BashOperator
 
-from training_callbacks import log_deadline_miss
+# The callback lives in dags/training_callbacks.py (shared by everyone).
+# Put the dags/ root on the import path so "training_callbacks" can be found.
+DAGS_ROOT = str(Path(__file__).resolve().parents[2])
+if DAGS_ROOT not in sys.path:
+    sys.path.insert(0, DAGS_ROOT)
+
+from training_callbacks import log_deadline_miss  # noqa: E402
 
 # Your student name is taken from your folder: dags/<your_name>/<module>/<this file>.
 # Use lowercase letters, digits or underscores for the folder name.
