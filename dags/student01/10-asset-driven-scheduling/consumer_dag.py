@@ -14,7 +14,7 @@ from airflow.providers.standard.operators.python import PythonOperator
 # Your student name is taken from your folder: dags/<your_name>/<module>/<this file>.
 # Use lowercase letters, digits or underscores for the folder name.
 STUDENT = re.sub(r"[^a-z0-9_]", "_", Path(__file__).resolve().parents[1].name.lower())
-BUCKET = "airflow-training"
+BUCKET = "cloudera-edu-cwo-airflow-training"
 S3_CONN_ID = "object_store"
 KEY = f"{STUDENT}/assets/my_data.csv"
 
