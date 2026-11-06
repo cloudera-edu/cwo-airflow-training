@@ -25,7 +25,7 @@ BUCKET = "cloudera-edu-cwo-airflow-training"
 
 hourly_sales = Asset(
     uri=f"s3://{BUCKET}/{STUDENT}/hourly-sales/",
-    name=f"hourly_sales_{STUDENT}",
+    name=f"hourly_sales_v2_{STUDENT}",
 )
 
 
