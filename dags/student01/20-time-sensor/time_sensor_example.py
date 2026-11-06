@@ -24,6 +24,7 @@ with DAG(
     schedule=None,
     start_date=datetime(2024, 1, 1),
     catchup=False,
+    dagrun_timeout=timedelta(minutes=45),   # longer than the sensor's 30-minute timeout
     tags=["training", "sensors"],
 ) as dag:
 
