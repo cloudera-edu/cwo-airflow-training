@@ -1,20 +1,21 @@
-"""Module 19 - Deadline Alerts (Workflow Orchestrator, Airflow 3.2.1).
+"""Module 19 - Time limits on runs and tasks (Workflow Orchestrator, Airflow 3.2.1).
 
-Deadline Alerts replace SLAs (removed in Airflow 3). The callback runs in
-the triggerer (AsyncCallback), and the triggerer can only import callables
-installed in its image - not functions defined in a DAG file. So this
-version uses the pre-installed Slack notifier.
+Two DAGs, each with a limit that is deliberately too short:
 
-Needs a Slack webhook connection named `slack_alerts` (Admin > Connections,
-type Slack Incoming Webhook). For a custom callback instead, install it in a
-custom image - see custom-image/training_triggers/callbacks.py.
+  task_timeout_example_<student>  - execution_timeout on one task: Airflow stops
+                                    the task after 1 minute and marks it failed.
+  run_timeout_example_<student>   - dagrun_timeout on the whole run: Airflow marks
+                                    the run failed after 2 minutes, even though a
+                                    task is still working.
+
+Deadline Alerts (the Airflow 3 replacement for SLAs) only *alert* and need a
+notifier such as Slack or email; they are covered in the lecture.
 """
 import re
 from pathlib import Path
-from datetime import timedelta
+from datetime import datetime, timedelta
 
-from airflow.sdk import DAG, AsyncCallback, DeadlineAlert, DeadlineReference
-from airflow.providers.slack.notifications.slack_webhook import SlackWebhookNotifier
+from airflow.sdk import DAG
 from airflow.providers.standard.operators.bash import BashOperator
 
 # Your student name is taken from your folder: dags/<your_name>/<module>/<this file>.
@@ -22,23 +23,32 @@ from airflow.providers.standard.operators.bash import BashOperator
 STUDENT = re.sub(r"[^a-z0-9_]", "_", Path(__file__).resolve().parents[1].name.lower())
 
 with DAG(
-    dag_id=f"deadline_alert_example_{STUDENT}",
+    dag_id=f"task_timeout_example_{STUDENT}",
     schedule=None,
+    start_date=datetime(2024, 1, 1),
     catchup=False,
-    tags=["training", "deadline-alerts"],
-    deadline=DeadlineAlert(
-        # Measure from when the run was queued...
-        reference=DeadlineReference.DAGRUN_QUEUED_AT,
-        # ...and alert if it hasn't finished 15 minutes later.
-        interval=timedelta(minutes=15),
-        callback=AsyncCallback(
-            SlackWebhookNotifier,
-            kwargs={
-                "slack_webhook_conn_id": "slack_alerts",
-                "text": "[ALERT] DAG {{ dag_run.dag_id }} missed its deadline. Run: {{ dag_run.run_id }}",
-            },
-        ),
-    ),
+    tags=["training", "timeouts"],
 ):
-    # Deliberately exceeds the 15-minute deadline (and stays under the 1-hour default timeout)
-    BashOperator(task_id="long_running_task", bash_command="sleep 1200")
+    quick_task = BashOperator(task_id="quick_task", bash_command="sleep 10")
+
+    # Needs 3 minutes but is only allowed 1: stopped and marked failed.
+    slow_task = BashOperator(
+        task_id="slow_task",
+        bash_command="sleep 180",
+        execution_timeout=timedelta(minutes=1),
+        retries=0,
+    )
+
+    quick_task >> slow_task
+
+
+with DAG(
+    dag_id=f"run_timeout_example_{STUDENT}",
+    schedule=None,
+    start_date=datetime(2024, 1, 1),
+    catchup=False,
+    dagrun_timeout=timedelta(minutes=2),   # the whole run gets 2 minutes
+    tags=["training", "timeouts"],
+):
+    # Needs 5 minutes, so the run times out while this task is still running.
+    BashOperator(task_id="long_running_task", bash_command="sleep 300")
