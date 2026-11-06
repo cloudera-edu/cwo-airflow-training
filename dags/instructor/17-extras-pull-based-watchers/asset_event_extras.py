@@ -1,10 +1,8 @@
-"""Module 17, part 1 - Asset event extras (Workflow Orchestrator, Airflow 3.2.1).
+"""Module 17 - Asset event extras (Workflow Orchestrator, Airflow 3.2.1).
 
-Runs on the standard image. A producer attaches metadata (row_count) to the
-asset event; the consumer reads it back through inlet_events.
-
-Part 2 (pull-based watchers) needs a custom image - see
-custom-image/dags/17-extras-pull-based-watchers/s3_watcher_example.py.
+A producer attaches metadata (row_count) to the asset event it emits.
+The consumer is scheduled on the asset and reads that metadata back
+through inlet_events. Runs on the standard image; no Object Store needed.
 """
 import re
 from pathlib import Path
