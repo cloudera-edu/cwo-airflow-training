@@ -1,19 +1,14 @@
 """Module 24 - Partitioned assets (Workflow Orchestrator, Airflow 3.2.1).
 
-The producer runs hourly on CronPartitionTimetable; each scheduled run gets a
-partition key (the hour), and the asset event it emits carries that key.
-The consumer runs once per partition and can see which one triggered it.
+The producer runs every 5 minutes on CronPartitionTimetable. Each scheduled
+run gets a partition key (its time slot), and the asset event it emits
+carries that key. The consumer runs once per partition and can see which
+partition triggered it.
 
-Changes for 3.2.1:
-  - outlet_events[...].add_partitions() does not exist in 3.2.1. An event
-    takes its partition key from the DAG run.
-  - So for a manual run, pass the key when you trigger it - through the
-    REST API (ties in with the REST API lab):
-      curl -X POST -H "Authorization: Bearer $ACCESS_TOKEN" \
-           -H "Content-Type: application/json" \
-           "${CWO_URL}api/v2/dags/player_stats_etl_<student>/dagRuns" \
-           -d '{"logical_date": null, "partition_key": "2026-10-27T09:00:00"}'
-  - hdfs:// URI -> s3:// (it is only an identifier here; nothing is read or written).
+In production the producer would typically run hourly or daily ("0 * * * *");
+every 5 minutes keeps the lab short.
+
+The s3:// URI is only an identifier here; nothing is read or written.
 """
 import re
 from pathlib import Path
@@ -22,18 +17,18 @@ from airflow.sdk import Asset, CronPartitionTimetable, IdentityMapper, Partition
 # Your student name is taken from your folder: dags/<your_name>/<module>/<this file>.
 # Use lowercase letters, digits or underscores for the folder name.
 STUDENT = re.sub(r"[^a-z0-9_]", "_", Path(__file__).resolve().parents[1].name.lower())
-BUCKET = "airflow-training"
+BUCKET = "cloudera-edu-cwo-airflow-training"
 
 player_stats = Asset(
     uri=f"s3://{BUCKET}/{STUDENT}/player-stats/",
-    name=f"player_stats_{STUDENT}",
+    name=f"player_stats_v2_{STUDENT}",
 )
 
 
-# --- Producer: one partitioned event per hourly run ----------------------
+# --- Producer: one partitioned event per 5-minute slot -------------------
 @dag(
     dag_id=f"player_stats_etl_{STUDENT}",
-    schedule=CronPartitionTimetable("0 * * * *", timezone="UTC"),
+    schedule=CronPartitionTimetable("*/5 * * * *", timezone="UTC"),  # every 5 minutes
     catchup=False,
     tags=["training", "partitions"],
 )
