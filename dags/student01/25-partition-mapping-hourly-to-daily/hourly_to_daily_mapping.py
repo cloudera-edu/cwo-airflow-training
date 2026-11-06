@@ -1,22 +1,18 @@
-"""Module 25 - Mapping hourly partitions to a daily partition (Workflow Orchestrator, Airflow 3.2.1).
+"""Module 25 - Mapping time partitions to a daily partition (Workflow Orchestrator, Airflow 3.2.1).
 
-REPLACES the Rollup lab. The original used RollupMapper, SegmentWindow,
-FixedKeyMapper and PartitionedAtRuntime, which arrive in Airflow 3.3 and are
-not in 3.2.1. In 3.2.1 the scheduler does not yet wait for every upstream
-partition before running the downstream DAG (true rollup is 3.3).
+The producer runs every 5 minutes on CronPartitionTimetable, so each run gets
+a time-slot partition key such as "2026-11-06T06:25:00". (In production this
+would be hourly: "0 * * * *". Every 5 minutes keeps the lab short.)
 
-What 3.2.1 does support, and what this lab shows: a partition MAPPER.
-StartOfDayMapper turns an hourly key such as "2026-10-27T09:00:00" into the
-daily key "2026-10-27", so the daily DAG's run is labelled with the day it
-belongs to.
+The consumer uses StartOfDayMapper, which turns that key into the daily key
+"2026-11-06", so the daily DAG's run is labelled with the day it belongs to.
 
-Try it: trigger the producer through the REST API for 09:00 and 10:00 on the
-same day. In 3.2.1 the daily DAG runs once PER hourly event - two runs, both
-with partition_key "2026-10-27". Discuss why that isn't a rollup yet, and what
-RollupMapper + DayWindow change in Airflow 3.3.
-  curl -X POST -H "Authorization: Bearer $ACCESS_TOKEN" -H "Content-Type: application/json" \
-       "${CWO_URL}api/v2/dags/ingest_hourly_sales_<student>/dagRuns" \
-       -d '{"logical_date": null, "partition_key": "2026-10-27T09:00:00"}'
+In 3.2.1 the daily DAG runs once PER upstream event - two producer runs give
+two daily runs, both with the same daily key. Waiting for all of a day's
+partitions before running once (a true rollup, RollupMapper + DayWindow)
+arrives in Airflow 3.3.
+
+The s3:// URI is only an identifier here; nothing is read or written.
 """
 import re
 from pathlib import Path
@@ -25,7 +21,7 @@ from airflow.sdk import Asset, CronPartitionTimetable, PartitionedAssetTimetable
 # Your student name is taken from your folder: dags/<your_name>/<module>/<this file>.
 # Use lowercase letters, digits or underscores for the folder name.
 STUDENT = re.sub(r"[^a-z0-9_]", "_", Path(__file__).resolve().parents[1].name.lower())
-BUCKET = "airflow-training"
+BUCKET = "cloudera-edu-cwo-airflow-training"
 
 hourly_sales = Asset(
     uri=f"s3://{BUCKET}/{STUDENT}/hourly-sales/",
@@ -35,14 +31,14 @@ hourly_sales = Asset(
 
 @dag(
     dag_id=f"ingest_hourly_sales_{STUDENT}",
-    schedule=CronPartitionTimetable("0 * * * *", timezone="UTC"),  # keys like 2026-10-27T09:00:00
+    schedule=CronPartitionTimetable("*/5 * * * *", timezone="UTC"),  # keys like 2026-11-06T06:25:00
     catchup=False,
     tags=["training", "partitions"],
 )
 def ingest_hourly_sales():
     @task(outlets=[hourly_sales])
     def ingest(dag_run=None):
-        print(f"Ingested hourly partition {dag_run.partition_key}")
+        print(f"Ingested partition {dag_run.partition_key}")
 
     ingest()
 
@@ -54,7 +50,7 @@ ingest_hourly_sales()
     dag_id=f"daily_sales_summary_{STUDENT}",
     schedule=PartitionedAssetTimetable(
         assets=hourly_sales,
-        default_partition_mapper=StartOfDayMapper(),  # 2026-10-27T09:00:00 -> 2026-10-27
+        default_partition_mapper=StartOfDayMapper(),  # 2026-11-06T06:25:00 -> 2026-11-06
     ),
     catchup=False,
     tags=["training", "partitions"],
