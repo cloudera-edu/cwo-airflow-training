@@ -1,4 +1,4 @@
-"""Module 02 - Passing data between tasks with XComs (Workflow Orchestrator, Airflow 3.2.1)."""
+"""Lab 02 - Passing data between tasks with XComs (Workflow Orchestrator, Airflow 3.2.1)."""
 import re
 from pathlib import Path
 import json

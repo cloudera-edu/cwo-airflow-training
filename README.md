@@ -15,9 +15,9 @@ Lab DAGs for the Airflow administration and operation course on **Cloudera Workf
 │   ├── student01/           <- one folder per student (created with scripts/new_student.sh)
 │   └── student02/
 ├── student-template/        <- master copy of the labs; never synced
-├── solutions/               <- solutions for modules 05 and 12 (kept out of dags/ so DAG IDs don't clash)
-├── spark/                   <- PySpark scripts to upload as CDE resources (modules 06 and 11)
-├── custom-image/            <- Dockerfile, training_triggers package and the module 17 watcher DAG
+├── solutions/               <- solutions for labs 04 and 11 (kept out of dags/ so DAG IDs don't clash)
+├── spark/                   <- PySpark scripts to upload as CDE resources (labs 05 and 10)
+├── custom-image/            <- Dockerfile, training_triggers package and the lab 14 watcher DAG
 ├── scripts/new_student.sh   <- creates dags/<student_name>/
 ├── tests/                   <- DAG checks run by CI
 ├── .github/workflows/       <- CI: parses every DAG on Airflow 3.2.1 on each push and pull request
@@ -48,17 +48,17 @@ The compute cluster needs network access to `github.com`.
 **Platform**
 - [ ] Deploy the Workflow Orchestrator instance with the Git settings in section 1. For 10 students, plan about 6 worker nodes (8 CPU / 16 GB). The idle platform alone uses about 14 CPU and 32 GB.
 - [ ] Set **remote logging** to the class Object Store bucket, so task logs survive after worker pods are removed.
-- [ ] Leave the **Disabled Operators** field at its default. Module 12 relies on `PythonVirtualenvOperator` being blocked.
+- [ ] Leave the **Disabled Operators** field at its default. Lab 11 relies on `PythonVirtualenvOperator` being blocked.
 - [ ] Confirm that new DAGs start **paused**. Otherwise every student's scheduled DAGs start running as soon as they're pushed.
-- [ ] Optional, for module 17: build the custom image from `custom-image/` and deploy it with the "Custom Image with Node Isolation" blueprint (or a second instance).
+- [ ] Optional, for lab 14: build the custom image from `custom-image/` and deploy it with the "Custom Image with Node Isolation" blueprint (or a second instance).
 
 **Accounts and access**
-- [ ] Create an Anywhere Cloud account for each student. Check that their role can trigger, clear and pause DAGs and respond to human-in-the-loop tasks (module 23).
+- [ ] Create an Anywhere Cloud account for each student. Check that their role can trigger, clear and pause DAGs and respond to human-in-the-loop tasks (lab 20).
 - [ ] Give each student **write** access to the repository: add them to a `cloudera-edu` team with write permission, or as collaborators under [Settings > Collaborators and teams](https://github.com/cloudera-edu/cwo-airflow-training/settings/access). Remove them after the class.
 - [ ] Protect `main` under [Settings > Branches](https://github.com/cloudera-edu/cwo-airflow-training/settings/branches): block force pushes and deletion, and require the **Validate DAGs** check to pass.
 - [ ] Check that [Actions](https://github.com/cloudera-edu/cwo-airflow-training/actions) are enabled for the repository, so the check runs on every push.
 - [ ] Students push over HTTPS with a personal access token (or with SSH keys on their GitHub account). Tell them which one to use in the hand-out.
-- [ ] Create AWC OAuth credentials (client ID and secret) for the CDE connection and the REST API labs (modules 24, 25 and the REST API lab).
+- [ ] Create AWC OAuth credentials (client ID and secret) for the CDE connection and the REST API labs (labs 21, 22 and the REST API lab).
 
 **Connections** (Admin > Connections in the Workflow Orchestrator UI). These are shared by the class, so only the instructor creates or changes them.
 
@@ -70,7 +70,7 @@ The compute cluster needs network access to `github.com`.
 
 **Data and CDE**
 - [ ] Create the class bucket. If it isn't called `airflow-training`, change `BUCKET` in `student-template/` and `dags/instructor/` before creating student folders.
-- [ ] In CDE on Anywhere Cloud, upload `spark/` as a resource and create `word_count_job`, `ingest_job`, `validate_job`, `transform_job` and `publish_job`. Give the module 11 jobs the arguments `<base_path> <load_date>`, and give them S3A access to Object Store in their Spark configuration. The jobs are shared by the class; they write the same sample data each run, so students rerunning them don't break each other's labs.
+- [ ] In CDE on Anywhere Cloud, upload `spark/` as a resource and create `word_count_job`, `ingest_job`, `validate_job`, `transform_job` and `publish_job`. Give the lab 10 jobs the arguments `<base_path> <load_date>`, and give them S3A access to Object Store in their Spark configuration. The jobs are shared by the class; they write the same sample data each run, so students rerunning them don't break each other's labs.
 
 **Pools**
 - [ ] Size `default_pool` for the cluster: (total worker RAM in GB − 32) ÷ 1. This stops a class-wide catchup or fan-out from overloading the workers.
@@ -86,8 +86,8 @@ for s in student03 student04 student05; do scripts/new_student.sh $s; done
 git add dags && git commit -m "Lab folders for <batch name>" && git push
 ```
 
-- [ ] After the next Git sync, check there are **no DAG import errors** in the UI, other than `debug_disabled_operator_*` (module 12, broken on purpose).
-- [ ] Dry run from `dags/instructor/`, at least modules 01, 06 (CDE), 10 (Object Store), 13 (triggerer) and 19 (Slack). This checks every connection.
+- [ ] After the next Git sync, check there are **no DAG import errors** in the UI, other than `debug_disabled_operator_*` (lab 11, broken on purpose).
+- [ ] Dry run from `dags/instructor/`, at least labs 01, 05 (CDE), 09 (Object Store) and 12 (triggerer). This checks every connection.
 - [ ] Prepare a hand-out for each student: Anywhere Cloud Console URL, their login, the repository URL (`https://github.com/cloudera-edu/cwo-airflow-training`), their folder name (for example `student01`), and how to push (token or SSH).
 
 ### On the day
@@ -127,7 +127,7 @@ Your instructor has already created your folder. If not, run `scripts/new_studen
 git pull --rebase                       # always start with the latest version
 # edit files under dags/<your_name>/ only
 git add dags/<your_name>
-git commit -m "<your_name>: module 05 branching"
+git commit -m "<your_name>: lab 04 branching"
 git pull --rebase && git push
 ```
 
@@ -148,9 +148,9 @@ Wait for the next Git sync, then find your DAGs in the UI by searching for your 
 
 **In the Workflow Orchestrator UI**
 8. Only unpause, trigger, clear or delete runs of DAGs that end with your name.
-9. Pause your DAGs when you finish a lab, especially scheduled ones (`@daily`, and the hourly partition DAGs in modules 24 and 25).
+9. Pause your DAGs when you finish a lab, especially scheduled ones (`@daily`, and the hourly partition DAGs in labs 21 and 22).
 10. Don't create, edit or delete **Connections**, **Variables** or **Pools** unless a lab tells you to. If it does, use a name that ends with your name. The `cde_runtime_api`, `object_store` and `slack_alerts` connections are shared by the class.
-11. Respond only to human-in-the-loop requests (module 23) from your own DAGs.
+11. Respond only to human-in-the-loop requests (lab 20) from your own DAGs.
 
 ### If something goes wrong
 
@@ -172,7 +172,7 @@ airflow db migrate && pytest -q tests/
 
 ## Notes
 
-- **Module 12, part 2:** `debug_disabled_operator_broken.py` uses a disabled operator on purpose, so the DAG processor reports it as an import error on Workflow Orchestrator. CI allows it.
-- **Module 17 watcher:** this needs the custom image. Build it from `custom-image/Dockerfile`, enable it on the instance, then copy `custom-image/dags/17-extras-pull-based-watchers/` into your `dags/<name>/` folder.
-- **Module 25:** this is the partition-mapping lab. Rollup needs Airflow 3.3.
+- **Lab 11, part 2:** `debug_disabled_operator_broken.py` uses a disabled operator on purpose, so the DAG processor reports it as an import error on Workflow Orchestrator. CI allows it.
+- **Lab 14 watcher:** this needs the custom image. Build it from `custom-image/Dockerfile`, enable it on the instance, then copy `custom-image/dags/14-extras-pull-based-watchers/` into your `dags/<name>/` folder.
+- **Lab 22:** this is the partition-mapping lab. Rollup needs Airflow 3.3.
 - **Tests:** CI uses a stub for the Cloudera CDE provider, which is pre-installed on Workflow Orchestrator but not on PyPI. See `docs/TEST_RESULTS.md` for what has been tested.

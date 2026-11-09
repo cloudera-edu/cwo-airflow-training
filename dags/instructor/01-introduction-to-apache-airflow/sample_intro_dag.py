@@ -1,4 +1,4 @@
-"""Module 01 - Exploring Airflow concepts (Workflow Orchestrator, Airflow 3.2.1)."""
+"""Lab 01 - Exploring Airflow concepts (Workflow Orchestrator, Airflow 3.2.1)."""
 import re
 from pathlib import Path
 from datetime import datetime, timedelta
